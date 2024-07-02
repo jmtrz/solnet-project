@@ -1,0 +1,6 @@
+@solnet_project_demo_HostAddress = http://localhost:5041
+
+GET {{solnet_project_demo_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
