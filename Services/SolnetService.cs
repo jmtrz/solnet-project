@@ -1,9 +1,13 @@
 
-using Solnet.Rpc;
-using Solnet.Rpc.Models;
-using Solnet.Wallet;
-using Solnet.Wallet.Bip39;
 using solnet_project_demo.Services;
+using Solnet.Rpc.Core.Http;
+using Solnet.Wallet.Bip39;
+using Solnet.Rpc.Builders;
+using Solnet.Rpc.Messages;
+using Solnet.Rpc.Models;
+using Solnet.Programs;
+using Solnet.Wallet;
+using Solnet.Rpc;
 
 namespace SolNet.Services;
 
@@ -75,5 +79,27 @@ public class SolNetService : ISolnetService
             return transactionHistory.Result;
         }
         throw new Exception(transactionHistory.Reason);
+    }
+
+    public string SendTransaction(string fromAccount, string toAccount, ulong lamports)
+    {
+        Account signer = new Account();
+
+        var blockHash = _rpcClient.GetLatestBlockHash();
+
+        byte[] transactionBuilder = new TransactionBuilder() 
+            .SetRecentBlockHash(blockHash.Result.ToString())
+            .SetFeePayer(new PublicKey(fromAccount))
+            .AddInstruction(SystemProgram.Transfer(new PublicKey(fromAccount), new PublicKey(toAccount), lamports))
+            .AddInstruction(MemoProgram.NewMemo(new PublicKey(fromAccount), "Hello from Sol.Net :)"))
+            .Build(signer);
+
+        Console.WriteLine($"Tx base64: {Convert.ToBase64String(transactionBuilder)}");
+        RequestResult<ResponseValue<SimulationLogs>> txSim = _rpcClient.SimulateTransaction(transactionBuilder);
+        Console.WriteLine(txSim);
+        RequestResult<string> firstSig = _rpcClient.SendTransaction(transactionBuilder);
+        Console.WriteLine($"First Tx Signature: {firstSig.Result}");
+
+        return firstSig.Result;
     }
 }
